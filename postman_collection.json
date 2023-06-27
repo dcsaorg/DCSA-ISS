@@ -1,0 +1,441 @@
+{
+	"info": {
+		"_postman_id": "b3cdacde-242c-4e26-9f29-190eade67868",
+		"name": "DCSA Issuance + Issuance RSP API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Issuance",
+			"item": [
+				{
+					"name": "Positive tests",
+					"item": [
+						{
+							"name": "Test: Submit eBL issuance request",
+							"item": [
+								{
+									"name": "Submit valid eBL",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is correct\", () => {\r",
+													"    pm.response.to.have.status(204);\r",
+													"});\r",
+													""
+												],
+												"type": "text/javascript"
+											}
+										},
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"\r",
+													"var body = {\r",
+													"    \"document\": utils.fetchTransportDocumentById(1),\r",
+													"    \"issueTo\": utils.fetchValidIssueToById(1),\r",
+													"};\r",
+													"\r",
+													"pm.environment.set(\"dynamicBody\", JSON.stringify(body));"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{{dynamicBody}}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{ISS_BASE_URL}}/{{ISS_CONTEXT_PATH}}/issue-ebls",
+											"host": [
+												"{{ISS_BASE_URL}}"
+											],
+											"path": [
+												"{{ISS_CONTEXT_PATH}}",
+												"issue-ebls"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Negative tests",
+							"item": [
+								{
+									"name": "Test: Pending requests should be rejected with 409",
+									"item": [
+										{
+											"name": "Submit Valid eBL first",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test(\"Status code is correct\", () => {\r",
+															"    pm.response.to.have.status(204);\r",
+															"});\r",
+															""
+														],
+														"type": "text/javascript"
+													}
+												},
+												{
+													"listen": "prerequest",
+													"script": {
+														"exec": [
+															"const tdRef = utils.generateTransportDocumentReference();\r",
+															"\r",
+															"var body = {\r",
+															"    // The \"NT-NO-REF\" is here to avoid getting the original TD ref for that document.\r",
+															"    // It does not matter for this particular negative tests. But for other negative tests,\r",
+															"    // it is important to avoid triggering \"reject due to pending\".\r",
+															"    \"document\": utils.fetchTransportDocumentById(1, tdRef),\r",
+															"    \"issueTo\": utils.fetchValidIssueToById(1),\r",
+															"};\r",
+															"\r",
+															"pm.collectionVariables.set(\"currentTransportDocumentReference\", tdRef);\r",
+															"pm.environment.set(\"dynamicBody\", JSON.stringify(body));"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"method": "PUT",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{{dynamicBody}}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{ISS_BASE_URL}}/{{ISS_CONTEXT_PATH}}/issue-ebls",
+													"host": [
+														"{{ISS_BASE_URL}}"
+													],
+													"path": [
+														"{{ISS_CONTEXT_PATH}}",
+														"issue-ebls"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Duplicate request for pending should be rejected",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test(\"Status code is correct\", () => {\r",
+															"    pm.response.to.have.status(409);\r",
+															"});\r",
+															"\r",
+															"pm.test(\"Error mentioned transportDocumentReference\", () => {\r",
+															"    var jsonData = pm.response.json();\r",
+															"    pm.expect(jsonData.errors[0].message).to.eq(\"There is already a pending issuance request for this document\");\r",
+															"});\r",
+															"\r",
+															"pm.collectionVariables.unset(\"currentTransportDocumentReference\");"
+														],
+														"type": "text/javascript"
+													}
+												},
+												{
+													"listen": "prerequest",
+													"script": {
+														"exec": [
+															"const tdRef = pm.collectionVariables.get(\"currentTransportDocumentReference\");\r",
+															"if (!tdRef) {\r",
+															"    throw new Error(\"Requests run out of order\")\r",
+															"}\r",
+															"var body = {\r",
+															"    // The \"NT-NO-REF\" is here to avoid getting the original TD ref for that document.\r",
+															"    // It does not matter for this particular negative tests. But for other negative tests,\r",
+															"    // it is important to avoid triggering \"reject due to pending\".\r",
+															"    \"document\": utils.fetchTransportDocumentById(1, tdRef),\r",
+															"    \"issueTo\": utils.fetchValidIssueToById(1),\r",
+															"};\r",
+															"\r",
+															"pm.environment.set(\"dynamicBody\", JSON.stringify(body));"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"method": "PUT",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{{dynamicBody}}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{ISS_BASE_URL}}/{{ISS_CONTEXT_PATH}}/issue-ebls",
+													"host": [
+														"{{ISS_BASE_URL}}"
+													],
+													"path": [
+														"{{ISS_CONTEXT_PATH}}",
+														"issue-ebls"
+													]
+												}
+											},
+											"response": []
+										}
+									]
+								},
+								{
+									"name": "No TD reference",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is correct\", () => {\r",
+													"    pm.response.to.have.status(400);\r",
+													"});\r",
+													"\r",
+													"pm.test(\"Error mentioned transportDocumentReference\", () => {\r",
+													"    var jsonData = pm.response.json();\r",
+													"    pm.expect(jsonData.errors[0].message).to.eq(\"The transport document must have \\\"transportDocumentReference\\\" and that attribute must be a string\");\r",
+													"});\r",
+													""
+												],
+												"type": "text/javascript"
+											}
+										},
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"\r",
+													"var body = {\r",
+													"    // The \"NT-NO-REF\" is here to avoid getting the original TD ref for that document.\r",
+													"    // It does not matter for this particular negative tests. But for other negative tests,\r",
+													"    // it is important to avoid triggering \"reject due to pending\".\r",
+													"    \"document\": utils.fetchTransportDocumentById(1, \"NT-NO-REF\"),\r",
+													"    \"issueTo\": utils.fetchValidIssueToById(1),\r",
+													"};\r",
+													"delete body.document.transportDocumentReference;\r",
+													"\r",
+													"pm.environment.set(\"dynamicBody\", JSON.stringify(body));"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{{dynamicBody}}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{ISS_BASE_URL}}/{{ISS_CONTEXT_PATH}}/issue-ebls",
+											"host": [
+												"{{ISS_BASE_URL}}"
+											],
+											"path": [
+												"{{ISS_CONTEXT_PATH}}",
+												"issue-ebls"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						}
+					]
+				}
+			],
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test(\"API-Version is present\", () => {",
+							"    pm.response.to.have.header(\"API-Version\");",
+							"});",
+							"",
+							"pm.test(\"API-Version header is set correctly\", () => {",
+							"    pm.expect(pm.response.headers.get(\"API-Version\")).to.eql(pm.collectionVariables.get(\"ISS_SPEC_VERSION\"));",
+							"});"
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Issuance RSP",
+			"item": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"const _makeid = (length) => {",
+					"    let result = '';",
+					"    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';",
+					"    const charactersLength = characters.length;",
+					"    let counter = 0;",
+					"    while (counter < length) {",
+					"      result += characters.charAt(Math.floor(Math.random() * charactersLength));",
+					"      counter += 1;",
+					"    }",
+					"    return result;",
+					"}",
+					"",
+					"const _resolveVariable = (varname) => {",
+					"    const raw = pm.variables.get(varname);",
+					"    if (!raw && !pm.variables.has(varname)) {",
+					"        throw new Error(`Unknown/resolvable variable: ${varname}`);",
+					"    }",
+					"    return raw;",
+					"}",
+					"",
+					"const _nullState = () => {",
+					"    return {",
+					"        tdReferences: {",
+					"",
+					"        }",
+					"    };",
+					"}",
+					"",
+					"let _state = _nullState();",
+					"",
+					"utils = {",
+					"  generateTransportDocumentReference() {",
+					"    return 'TDR-' + _makeid(16);",
+					"  },",
+					"",
+					"  fetchTransportDocumentRefereneById(id) {",
+					"    let tdRef = _state.tdReferences[`${id}`];",
+					"    if (!tdRef) {",
+					"        tdRef = utils.generateTransportDocumentReference();",
+					"        _state.tdReferences[`${id}`] = tdRef;",
+					"    }",
+					"    return tdRef;",
+					"  },",
+					"",
+					"  fetchTransportDocumentById(id, referenceNumber = null) {",
+					"      const varname = `VALID_EBL_${id}`;",
+					"      const body = JSON.parse(_resolveVariable(varname));",
+					"      if (referenceNumber) {",
+					"        body.transportDocumentReference = referenceNumber;",
+					"      } else {",
+					"        let tdRef = utils.fetchTransportDocumentRefereneById(id);",
+					"        body.transportDocumentReference = tdRef;",
+					"      }",
+					"      return body;",
+					"  },",
+					"",
+					"  fetchValidIssueToById(id) {",
+					"      return JSON.parse(_resolveVariable(`VALID_ISSUE_TO_PARTY_${id}`));",
+					"  },",
+					"};",
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "ISS_BASE_URL",
+			"value": "http://localhost:9090",
+			"type": "default"
+		},
+		{
+			"key": "ISS_RSP_BASE__URL",
+			"value": "http://localhost:9090",
+			"type": "default"
+		},
+		{
+			"key": "ISS_CONTEXT_PATH",
+			"value": "iss/v1",
+			"type": "default"
+		},
+		{
+			"key": "ISS_RSP_CONTEXT_PATH\n",
+			"value": "iss-rsp/v1",
+			"type": "default"
+		},
+		{
+			"key": "ISS_SPEC_VERSION",
+			"value": "1.0.0",
+			"type": "default"
+		},
+		{
+			"key": "ISS_RSP_SPEC_VERSION",
+			"value": "1.0.0",
+			"type": "default"
+		},
+		{
+			"key": "VALID_ISSUE_TO_PARTY_1",
+			"value": "{\n  \"eblPlatformIdentifier\": \"foo@localhost:9090\",\n  \"legalName\": \"Foo Entity\"\n}\n",
+			"type": "default"
+		},
+		{
+			"key": "VALID_EBL_1",
+			"value": "{\n  \"transportDocumentReference\": \"TD-Ref-123\",\n  \"transportDocumentCreatedDateTime\": \"2019-11-12T07:41:00+08:30\",\n  \"transportDocumentUpdatedDateTime\": \"2019-11-12T07:41:00+08:30\",\n  \"issueDate\": \"2020-12-12\",\n  \"shippedOnBoardDate\": \"2020-12-12\",\n  \"receivedForShipmentDate\": \"2020-12-12\",\n  \"carrierCode\": \"MMCU\",\n  \"carrierCodeListProvider\": \"NMFTA\",\n  \"issuingParty\": {\n    \"partyName\": \"Asseco Denmark\",\n    \"taxReference1\": \"CVR-25645774\",\n    \"taxReference2\": \"CVR-25645774\",\n    \"publicKey\": \"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IkFzaW\",\n    \"address\": {\n      \"name\": \"Henrik\",\n      \"street\": \"Kronprinsessegade\",\n      \"streetNumber\": \"54\",\n      \"floor\": \"5. sal\",\n      \"postCode\": \"1306\",\n      \"city\": \"København\",\n      \"stateRegion\": \"N/A\",\n      \"country\": \"Denmark\"\n    },\n    \"partyContactDetails\": [\n      {\n        \"name\": \"Henrik\",\n        \"phone\": \"+45 33364660\",\n        \"email\": \"info@dcsa.org\",\n        \"url\": \"https://www.dcsa.org\"\n      }\n    ],\n    \"identifyingCodes\": [\n      {\n        \"DCSAResponsibleAgencyCode\": \"SMDG\",\n        \"partyCode\": \"MSK\",\n        \"codeListName\": \"LCL\"\n      }\n    ]\n  },\n  \"numberOfRiderPages\": 2,\n  \"termsAndConditions\": \"string\",\n  \"receiptTypeAtOrigin\": \"CY\",\n  \"deliveryTypeAtDestination\": \"CY\",\n  \"cargoMovementTypeAtOrigin\": \"FCL\",\n  \"cargoMovementTypeAtDestination\": \"FCL\",\n  \"serviceContractReference\": \"string\",\n  \"vesselName\": \"King of the Seas\",\n  \"carrierServiceName\": \"Great Lion Service\",\n  \"carrierServiceCode\": \"FE1\",\n  \"universalServiceReference\": \"SR12345A\",\n  \"carrierExportVoyageNumber\": \"2103S\",\n  \"universalExportVoyageReference\": \"2103N\",\n  \"declaredValue\": 1231.1,\n  \"declaredValueCurrency\": \"DKK\",\n  \"transports\": [\n    {\n      \"transportPlanStage\": \"PRC\",\n      \"transportPlanStageSequenceNumber\": 5,\n      \"loadLocation\": {\n        \"locationName\": \"Shanghai Shengdong International Container Terminal\",\n        \"UNLocationCode\": \"CNSGH\",\n        \"facilityCode\": \"SHENG\",\n        \"facilityCodeListProvider\": \"SMDG\"\n      },\n      \"dischargeLocation\": {\n        \"locationName\": \"Transnet Port Terminals Cape Town\",\n        \"UNLocationCode\": \"ZACPT\",\n        \"facilityCode\": \"TNCT\",\n        \"facilityCodeListProvider\": \"SMDG\"\n      },\n      \"plannedDepartureDate\": \"2023-06-27\",\n      \"plannedArrivalDate\": \"2023-06-27\",\n      \"modeOfTransport\": \"VESSEL\",\n      \"vesselName\": \"King of the Seas\",\n      \"vesselIMONumber\": \"9321483\",\n      \"carrierImportVoyageNumber\": \"2103N\",\n      \"universalImportVoyageReference\": \"2103N\",\n      \"carrierExportVoyageNumber\": \"2103S\",\n      \"universalExportVoyageReference\": \"2103N\",\n      \"isUnderShippersResponsibility\": false\n    }\n  ],\n  \"shipmentLocations\": [\n    {\n      \"location\": {\n        \"locationName\": \"CMP Container Terminal Copenhagen\",\n        \"UNLocationCode\": \"DKCPH\",\n        \"facilityCode\": \"CMPDK\",\n        \"facilityCodeListProvider\": \"SMDG\"\n      },\n      \"shipmentLocationTypeCode\": \"PRE\",\n      \"eventDateTime\": \"2021-11-03T10:23:00+01:00\"\n    }\n  ],\n  \"invoicePayableAt\": {\n    \"locationName\": \"Eiffel Tower\",\n    \"UNLocationCode\": \"FRPAR\"\n  },\n  \"placeOfIssue\": {\n    \"locationName\": \"DCSA Headquarters\",\n    \"UNLocationCode\": \"NLAMS\"\n  },\n  \"shippingInstruction\": {\n    \"shippingInstructionReference\": \"e0559d83-00e2-438e-afd9-fdd610c1a008\",\n    \"documentStatus\": \"RECE\",\n    \"shippingInstructionCreatedDateTime\": \"2019-11-12T07:41:00+08:30\",\n    \"shippingInstructionUpdatedDateTime\": \"2019-11-12T07:41:00+08:30\",\n    \"amendToTransportDocument\": \"string\",\n    \"transportDocumentTypeCode\": \"SWB\",\n    \"isShippedOnBoardType\": true,\n    \"numberOfCopiesWithCharges\": 2,\n    \"numberOfCopiesWithoutCharges\": 2,\n    \"numberOfOriginalsWithCharges\": 1,\n    \"numberOfOriginalsWithoutCharges\": 1,\n    \"isElectronic\": true,\n    \"isToOrder\": false,\n    \"displayedNameForPlaceOfReceipt\": [\n      \"string\"\n    ],\n    \"displayedNameForPortOfLoad\": [\n      \"string\"\n    ],\n    \"displayedNameForPortOfDischarge\": [\n      \"string\"\n    ],\n    \"displayedNameForPlaceOfDelivery\": [\n      \"string\"\n    ],\n    \"carrierBookingReference\": \"ABC709951\",\n    \"placeOfIssue\": {\n      \"locationName\": \"DCSA Headquarters\",\n      \"UNLocationCode\": \"NLAMS\"\n    },\n    \"consignmentItems\": [\n      {\n        \"carrierBookingReference\": \"ABC709951\",\n        \"weight\": 13000.3,\n        \"volume\": 12,\n        \"weightUnit\": \"KGM\",\n        \"volumeUnit\": \"MTQ\",\n        \"descriptionOfGoods\": \"string\",\n        \"HSCode\": \"string\",\n        \"cargoItems\": [\n          {\n            \"cargoLineItems\": [\n              {\n                \"cargoLineItemID\": \"string\",\n                \"shippingMarks\": \"string\"\n              }\n            ],\n            \"equipmentReference\": \"APZU4812090\",\n            \"weight\": 13000.3,\n            \"volume\": 12,\n            \"weightUnit\": \"KGM\",\n            \"volumeUnit\": \"MTQ\",\n            \"numberOfPackages\": 18,\n            \"packageCode\": \"5H4\",\n            \"packageNameOnBL\": \"Bags\"\n          }\n        ],\n        \"references\": [\n          {\n            \"type\": \"FF\",\n            \"value\": \"string\"\n          }\n        ]\n      }\n    ],\n    \"utilizedTransportEquipments\": [\n      {\n        \"equipment\": {\n          \"equipmentReference\": \"APZU4812090\",\n          \"ISOEquipmentCode\": \"22GP\",\n          \"tareWeight\": 4800,\n          \"weightUnit\": \"KGM\"\n        },\n        \"cargoGrossWeight\": 12000,\n        \"cargoGrossWeightUnit\": \"KGM\",\n        \"cargoGrossVolume\": 120,\n        \"cargoGrossVolumeUnit\": \"MTQ\",\n        \"numberOfPackages\": 18,\n        \"isShipperOwned\": true,\n        \"seals\": [\n          {\n            \"number\": \"string\",\n            \"source\": \"CUS\",\n            \"type\": \"WIR\"\n          }\n        ]\n      }\n    ],\n    \"documentParties\": [\n      {\n        \"party\": {\n          \"partyName\": \"Asseco Denmark\",\n          \"taxReference1\": \"CVR-25645774\",\n          \"taxReference2\": \"CVR-25645774\",\n          \"publicKey\": \"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IkFzaW\",\n          \"address\": {\n            \"name\": \"Henrik\",\n            \"street\": \"Kronprinsessegade\",\n            \"streetNumber\": \"54\",\n            \"floor\": \"5. sal\",\n            \"postCode\": \"1306\",\n            \"city\": \"København\",\n            \"stateRegion\": \"N/A\",\n            \"country\": \"Denmark\"\n          },\n          \"partyContactDetails\": [\n            {\n              \"name\": \"Henrik\",\n              \"phone\": \"+45 33364660\",\n              \"email\": \"info@dcsa.org\",\n              \"url\": \"https://www.dcsa.org\"\n            }\n          ],\n          \"identifyingCodes\": [\n            {\n              \"DCSAResponsibleAgencyCode\": \"SMDG\",\n              \"partyCode\": \"MSK\",\n              \"codeListName\": \"LCL\"\n            }\n          ]\n        },\n        \"partyFunction\": \"DDS\",\n        \"displayedAddress\": [\n          \"Kronprincessegade 54\"\n        ],\n        \"isToBeNotified\": true\n      }\n    ],\n    \"references\": [\n      {\n        \"type\": \"FF\",\n        \"value\": \"string\"\n      }\n    ]\n  },\n  \"charges\": [\n    {\n      \"chargeType\": \"string\",\n      \"currencyAmount\": 1012.12,\n      \"currencyCode\": \"DKK\",\n      \"paymentTermCode\": \"PRE\",\n      \"calculationBasis\": \"Per day\",\n      \"unitPrice\": 3456.6,\n      \"quantity\": 34.4\n    }\n  ],\n  \"carrierClauses\": [\n    {\n      \"clauseContent\": \"string\"\n    }\n  ]\n}",
+			"type": "default"
+		},
+		{
+			"value": "",
+			"type": "default",
+			"disabled": true
+		}
+	]
+}
