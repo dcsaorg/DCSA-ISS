@@ -2,7 +2,6 @@ package org.dcsa.issuance.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.dcsa.issuance.service.IssueRequestService;
 import org.dcsa.issuance.transferobjects.IssuanceRequestTO;
 import org.dcsa.skernel.errors.exceptions.ConcreteRequestErrorMessageException;
@@ -13,7 +12,6 @@ import org.springframework.web.bind.annotation.*;
 @Validated
 @RestController
 @RequiredArgsConstructor
-@Slf4j
 public class IssueRequestController {
 
   private final IssueRequestService issueRequestService;

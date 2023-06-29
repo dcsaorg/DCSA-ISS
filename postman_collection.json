@@ -12,7 +12,7 @@
 					"name": "Positive tests",
 					"item": [
 						{
-							"name": "Test: Submit eBL issuance request",
+							"name": "Single request tests",
 							"item": [
 								{
 									"name": "Submit valid eBL",
@@ -73,156 +73,17 @@
 							]
 						},
 						{
-							"name": "Negative tests",
+							"name": "Test: Submit eBL issuance request",
 							"item": [
 								{
-									"name": "Test: Pending requests should be rejected with 409",
-									"item": [
-										{
-											"name": "Submit Valid eBL first",
-											"event": [
-												{
-													"listen": "test",
-													"script": {
-														"exec": [
-															"pm.test(\"Status code is correct\", () => {\r",
-															"    pm.response.to.have.status(204);\r",
-															"});\r",
-															""
-														],
-														"type": "text/javascript"
-													}
-												},
-												{
-													"listen": "prerequest",
-													"script": {
-														"exec": [
-															"const tdRef = utils.generateTransportDocumentReference();\r",
-															"\r",
-															"var body = {\r",
-															"    // The \"NT-NO-REF\" is here to avoid getting the original TD ref for that document.\r",
-															"    // It does not matter for this particular negative tests. But for other negative tests,\r",
-															"    // it is important to avoid triggering \"reject due to pending\".\r",
-															"    \"document\": utils.fetchTransportDocumentById(1, tdRef),\r",
-															"    \"issueTo\": utils.fetchValidIssueToById(1),\r",
-															"};\r",
-															"\r",
-															"pm.collectionVariables.set(\"currentTransportDocumentReference\", tdRef);\r",
-															"pm.environment.set(\"dynamicBody\", JSON.stringify(body));"
-														],
-														"type": "text/javascript"
-													}
-												}
-											],
-											"request": {
-												"method": "PUT",
-												"header": [],
-												"body": {
-													"mode": "raw",
-													"raw": "{{dynamicBody}}",
-													"options": {
-														"raw": {
-															"language": "json"
-														}
-													}
-												},
-												"url": {
-													"raw": "{{ISS_BASE_URL}}/{{ISS_CONTEXT_PATH}}/issue-ebls",
-													"host": [
-														"{{ISS_BASE_URL}}"
-													],
-													"path": [
-														"{{ISS_CONTEXT_PATH}}",
-														"issue-ebls"
-													]
-												}
-											},
-											"response": []
-										},
-										{
-											"name": "Duplicate request for pending should be rejected",
-											"event": [
-												{
-													"listen": "test",
-													"script": {
-														"exec": [
-															"pm.test(\"Status code is correct\", () => {\r",
-															"    pm.response.to.have.status(409);\r",
-															"});\r",
-															"\r",
-															"pm.test(\"Error mentioned transportDocumentReference\", () => {\r",
-															"    var jsonData = pm.response.json();\r",
-															"    pm.expect(jsonData.errors[0].message).to.eq(\"There is already a pending issuance request for this document\");\r",
-															"});\r",
-															"\r",
-															"pm.collectionVariables.unset(\"currentTransportDocumentReference\");"
-														],
-														"type": "text/javascript"
-													}
-												},
-												{
-													"listen": "prerequest",
-													"script": {
-														"exec": [
-															"const tdRef = pm.collectionVariables.get(\"currentTransportDocumentReference\");\r",
-															"if (!tdRef) {\r",
-															"    throw new Error(\"Requests run out of order\")\r",
-															"}\r",
-															"var body = {\r",
-															"    // The \"NT-NO-REF\" is here to avoid getting the original TD ref for that document.\r",
-															"    // It does not matter for this particular negative tests. But for other negative tests,\r",
-															"    // it is important to avoid triggering \"reject due to pending\".\r",
-															"    \"document\": utils.fetchTransportDocumentById(1, tdRef),\r",
-															"    \"issueTo\": utils.fetchValidIssueToById(1),\r",
-															"};\r",
-															"\r",
-															"pm.environment.set(\"dynamicBody\", JSON.stringify(body));"
-														],
-														"type": "text/javascript"
-													}
-												}
-											],
-											"request": {
-												"method": "PUT",
-												"header": [],
-												"body": {
-													"mode": "raw",
-													"raw": "{{dynamicBody}}",
-													"options": {
-														"raw": {
-															"language": "json"
-														}
-													}
-												},
-												"url": {
-													"raw": "{{ISS_BASE_URL}}/{{ISS_CONTEXT_PATH}}/issue-ebls",
-													"host": [
-														"{{ISS_BASE_URL}}"
-													],
-													"path": [
-														"{{ISS_CONTEXT_PATH}}",
-														"issue-ebls"
-													]
-												}
-											},
-											"response": []
-										}
-									]
-								},
-								{
-									"name": "No TD reference",
+									"name": "Submit eBL that is processed but will later be rejected",
 									"event": [
 										{
 											"listen": "test",
 											"script": {
 												"exec": [
 													"pm.test(\"Status code is correct\", () => {\r",
-													"    pm.response.to.have.status(400);\r",
-													"});\r",
-													"\r",
-													"pm.test(\"Error mentioned transportDocumentReference\", () => {\r",
-													"    var jsonData = pm.response.json();\r",
-													"    pm.expect(jsonData.errors[0].message).to.eq(\"The transport document must have \\\"transportDocumentReference\\\" and that attribute must be a string\");\r",
+													"    pm.response.to.have.status(204);\r",
 													"});\r",
 													""
 												],
@@ -233,15 +94,270 @@
 											"listen": "prerequest",
 											"script": {
 												"exec": [
+													"const tdRef = utils.generateTransportDocumentReference();\r",
+													"\r",
+													"var body = {\r",
+													"    \"document\": utils.fetchTransportDocumentById(1, tdRef),\r",
+													"    \"issueTo\": utils.fetchValidIssueToById(1),\r",
+													"};\r",
+													"\r",
+													"pm.collectionVariables.set(\"currentTransportDocumentReference\", tdRef);\r",
+													"pm.environment.set(\"dynamicBody\", JSON.stringify(body));"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{{dynamicBody}}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{ISS_BASE_URL}}/{{ISS_CONTEXT_PATH}}/issue-ebls",
+											"host": [
+												"{{ISS_BASE_URL}}"
+											],
+											"path": [
+												"{{ISS_CONTEXT_PATH}}",
+												"issue-ebls"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "[Unofficial endpoint] Mark the request as rejected",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is correct\", () => {\r",
+													"    pm.response.to.have.status(204);\r",
+													"});\r",
+													""
+												],
+												"type": "text/javascript"
+											}
+										},
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const tdRef = pm.collectionVariables.get(\"currentTransportDocumentReference\");\r",
+													"if (!tdRef) {\r",
+													"    throw new Error(\"Requests run out of order\")\r",
+													"}"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"transportDocumentReference\": \"{{currentTransportDocumentReference}}\",\r\n    \"issuanceRequestState\": \"BREQ\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{ISS_BASE_URL}}/{{ISS_CONTEXT_PATH}}/unofficial/change-state/{{currentTransportDocumentReference}}",
+											"host": [
+												"{{ISS_BASE_URL}}"
+											],
+											"path": [
+												"{{ISS_CONTEXT_PATH}}",
+												"unofficial",
+												"change-state",
+												"{{currentTransportDocumentReference}}"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Resubmit eBL",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.collectionVariables.unset(\"currentTransportDocumentReference\");\r",
+													"\r",
+													"pm.test(\"Status code is correct\", () => {\r",
+													"    pm.response.to.have.status(204);\r",
+													"});\r",
+													""
+												],
+												"type": "text/javascript"
+											}
+										},
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const tdRef = pm.collectionVariables.get(\"currentTransportDocumentReference\");\r",
+													"if (!tdRef) {\r",
+													"    throw new Error(\"Requests run out of order\")\r",
+													"}\r",
+													"var body = {\r",
+													"    \"document\": utils.fetchTransportDocumentById(1, tdRef),\r",
+													"    \"issueTo\": utils.fetchValidIssueToById(1),\r",
+													"};\r",
+													"\r",
+													"pm.environment.set(\"dynamicBody\", JSON.stringify(body));"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{{dynamicBody}}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{ISS_BASE_URL}}/{{ISS_CONTEXT_PATH}}/issue-ebls",
+											"host": [
+												"{{ISS_BASE_URL}}"
+											],
+											"path": [
+												"{{ISS_CONTEXT_PATH}}",
+												"issue-ebls"
+											]
+										}
+									},
+									"response": []
+								}
+							],
+							"description": "Test to ensure that a transport document reference can be reused if the issuance request is rejected (e.g., via `BREQ`)."
+						}
+					]
+				},
+				{
+					"name": "Negative tests",
+					"item": [
+						{
+							"name": "Test: Pending requests should be rejected with 409",
+							"item": [
+								{
+									"name": "Submit Valid eBL first",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is correct\", () => {\r",
+													"    pm.response.to.have.status(204);\r",
+													"});\r",
+													""
+												],
+												"type": "text/javascript"
+											}
+										},
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const tdRef = utils.generateTransportDocumentReference();\r",
 													"\r",
 													"var body = {\r",
 													"    // The \"NT-NO-REF\" is here to avoid getting the original TD ref for that document.\r",
 													"    // It does not matter for this particular negative tests. But for other negative tests,\r",
 													"    // it is important to avoid triggering \"reject due to pending\".\r",
-													"    \"document\": utils.fetchTransportDocumentById(1, \"NT-NO-REF\"),\r",
+													"    \"document\": utils.fetchTransportDocumentById(1, tdRef),\r",
 													"    \"issueTo\": utils.fetchValidIssueToById(1),\r",
 													"};\r",
-													"delete body.document.transportDocumentReference;\r",
+													"\r",
+													"pm.collectionVariables.set(\"currentTransportDocumentReference\", tdRef);\r",
+													"pm.environment.set(\"dynamicBody\", JSON.stringify(body));"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{{dynamicBody}}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{ISS_BASE_URL}}/{{ISS_CONTEXT_PATH}}/issue-ebls",
+											"host": [
+												"{{ISS_BASE_URL}}"
+											],
+											"path": [
+												"{{ISS_CONTEXT_PATH}}",
+												"issue-ebls"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Duplicate request for pending should be rejected",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.collectionVariables.unset(\"currentTransportDocumentReference\");\r",
+													"\r",
+													"pm.test(\"Status code is correct\", () => {\r",
+													"    pm.response.to.have.status(409);\r",
+													"});\r",
+													"\r",
+													"pm.test(\"Error mentioned transportDocumentReference\", () => {\r",
+													"    var jsonData = pm.response.json();\r",
+													"    pm.expect(jsonData.errors[0].message).to.eq(\"There is already a pending issuance request for this document\");\r",
+													"});\r",
+													""
+												],
+												"type": "text/javascript"
+											}
+										},
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const tdRef = pm.collectionVariables.get(\"currentTransportDocumentReference\");\r",
+													"if (!tdRef) {\r",
+													"    throw new Error(\"Requests run out of order\")\r",
+													"}\r",
+													"var body = {\r",
+													"    // The \"NT-NO-REF\" is here to avoid getting the original TD ref for that document.\r",
+													"    // It does not matter for this particular negative tests. But for other negative tests,\r",
+													"    // it is important to avoid triggering \"reject due to pending\".\r",
+													"    \"document\": utils.fetchTransportDocumentById(1, tdRef),\r",
+													"    \"issueTo\": utils.fetchValidIssueToById(1),\r",
+													"};\r",
 													"\r",
 													"pm.environment.set(\"dynamicBody\", JSON.stringify(body));"
 												],
@@ -275,6 +391,71 @@
 									"response": []
 								}
 							]
+						},
+						{
+							"name": "No TD reference",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is correct\", () => {\r",
+											"    pm.response.to.have.status(400);\r",
+											"});\r",
+											"\r",
+											"pm.test(\"Error mentioned transportDocumentReference\", () => {\r",
+											"    var jsonData = pm.response.json();\r",
+											"    pm.expect(jsonData.errors[0].message).to.eq(\"The transport document must have \\\"transportDocumentReference\\\" and that attribute must be a string\");\r",
+											"});\r",
+											""
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"\r",
+											"var body = {\r",
+											"    // The \"NT-NO-REF\" is here to avoid getting the original TD ref for that document.\r",
+											"    // It does not matter for this particular negative tests. But for other negative tests,\r",
+											"    // it is important to avoid triggering \"reject due to pending\".\r",
+											"    \"document\": utils.fetchTransportDocumentById(1, \"NT-NO-REF\"),\r",
+											"    \"issueTo\": utils.fetchValidIssueToById(1),\r",
+											"};\r",
+											"delete body.document.transportDocumentReference;\r",
+											"\r",
+											"pm.environment.set(\"dynamicBody\", JSON.stringify(body));"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{{dynamicBody}}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{ISS_BASE_URL}}/{{ISS_CONTEXT_PATH}}/issue-ebls",
+									"host": [
+										"{{ISS_BASE_URL}}"
+									],
+									"path": [
+										"{{ISS_CONTEXT_PATH}}",
+										"issue-ebls"
+									]
+								}
+							},
+							"response": []
 						}
 					]
 				}
@@ -299,7 +480,9 @@
 							"});",
 							"",
 							"pm.test(\"API-Version header is set correctly\", () => {",
-							"    pm.expect(pm.response.headers.get(\"API-Version\")).to.eql(pm.collectionVariables.get(\"ISS_SPEC_VERSION\"));",
+							"    if (!pm.request.url.path.includes(\"unofficial\")) {",
+							"        pm.expect(pm.response.headers.get(\"API-Version\")).to.eql(pm.collectionVariables.get(\"ISS_SPEC_VERSION\"));",
+							"    }",
 							"});"
 						]
 					}

@@ -42,4 +42,12 @@ public class IssuanceRequest {
   @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
   @JoinColumn(name = "ebl_visualization")
   private EBLVisualization eBLVisualisationByCarrier;
+
+  public void changeStateTo(IssuanceRequestState issuanceRequestState) {
+    if (!this.issuanceRequestState.canTransitionTo(issuanceRequestState)) {
+      throw new IllegalArgumentException("Invalid transition from " + this.issuanceRequestState
+        + " to " + issuanceRequestState);
+    }
+    this.issuanceRequestState = issuanceRequestState;
+  }
 }

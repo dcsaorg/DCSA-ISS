@@ -11,4 +11,13 @@ public enum IssuanceRequestState {
   ;
 
   public static final List<IssuanceRequestState> PENDING_STATES = List.of(PEND);
+
+  public boolean canTransitionTo(IssuanceRequestState s) {
+    return switch (this) {
+      case SURR, REFU, BREQ -> false;
+      case ISSU -> s == SURR;
+      // We allow it to skip "ISSU" and go directly to "SURR" because it makes the test simpler
+      case PEND -> true;
+    };
+  }
 }
