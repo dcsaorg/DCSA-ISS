@@ -1,4 +1,4 @@
-# DCSA-Edocumentation - Booking and EBL
+# DCSA-ISS - Issuance of eBLs via eBL platforms
 
 Building and Running the project,
 -------------------------------------
@@ -7,10 +7,11 @@ Setup a Github Personal Access Token as mentioned [here](https://github.com/dcsa
 
 If you would like to build required DCSA packages individually, begin with step 1.
 
-1) Clone **DCSA-Edocumentation** (with ``--recurse-submodules`` option.) and Build using, ``mvn package``
+1) Clone **DCSA-ISS** (with ``--recurse-submodules`` option.) and Build using, ``mvn package``
 
-2) Initialize your local postgresql database as described in [datamodel/README.md](https://github.com/dcsaorg/DCSA-Information-Model/blob/master/README.md) \
-   or If you have docker installed, you may skip this step and use the docker-compose command mentioned below to set it up (This will initialize the application along with the database).
+2) Initialize your local postgresql database and provide the application with schema permissions. The application
+   will create the schema itself (via flyway). You can use our initialization script [issuance-domain/src/main/init.db]
+   or, if you have docker installed, you may skip this step and use the docker-compose command mentioned below to set it up (This will initialize the application along with the database).
 
 3) Run application,
 ```
