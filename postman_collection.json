@@ -15,7 +15,7 @@
 							"name": "Single request tests",
 							"item": [
 								{
-									"name": "Submit valid eBL",
+									"name": "Basic minimal test (no supporting party codes)",
 									"event": [
 										{
 											"listen": "test",
@@ -38,6 +38,73 @@
 													"    \"document\": utils.fetchTransportDocumentById(1),\r",
 													"    \"issueTo\": utils.fetchValidIssueToById(1),\r",
 													"};\r",
+													"\r",
+													"delete body.issueTo.supportingPartyCodes;\r",
+													"\r",
+													"pm.environment.set(\"dynamicBody\", JSON.stringify(body));"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{{dynamicBody}}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{ISS_BASE_URL}}/{{ISS_CONTEXT_PATH}}/issue-ebls",
+											"host": [
+												"{{ISS_BASE_URL}}"
+											],
+											"path": [
+												"{{ISS_CONTEXT_PATH}}",
+												"issue-ebls"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "IssueTo party with supporting party  codes",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is correct\", () => {\r",
+													"    pm.response.to.have.status(204);\r",
+													"});\r",
+													""
+												],
+												"type": "text/javascript"
+											}
+										},
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"\r",
+													"var body = {\r",
+													"    \"document\": utils.fetchTransportDocumentById(1),\r",
+													"    \"issueTo\": utils.fetchValidIssueToById(1),\r",
+													"};\r",
+													"\r",
+													"if (!body.issueTo.supportingPartyCodes) {\r",
+													"    body.issueTo.supportingPartyCodes = [\r",
+													"        {\r",
+													"            \"partyCodeListProvider\": \"DID\",\r",
+													"            \"partyCode\": \"did:example:123456789abcdefghi\"\r",
+													"        }\r",
+													"    ]\r",
+													"}\r",
 													"\r",
 													"pm.environment.set(\"dynamicBody\", JSON.stringify(body));"
 												],
@@ -251,188 +318,188 @@
 								}
 							],
 							"description": "Test to ensure that a transport document reference can be reused if the issuance request is rejected (e.g., via `BREQ`)."
+						},
+						{
+							"name": "Test: Submit eBL issuance request after surrender (admendment)",
+							"item": [
+								{
+									"name": "Submit eBL that is processed but will later be rejected",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is correct\", () => {\r",
+													"    pm.response.to.have.status(204);\r",
+													"});\r",
+													""
+												],
+												"type": "text/javascript"
+											}
+										},
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const tdRef = utils.generateTransportDocumentReference();\r",
+													"\r",
+													"var body = {\r",
+													"    \"document\": utils.fetchTransportDocumentById(1, tdRef),\r",
+													"    \"issueTo\": utils.fetchValidIssueToById(1),\r",
+													"};\r",
+													"\r",
+													"pm.collectionVariables.set(\"currentTransportDocumentReference\", tdRef);\r",
+													"pm.environment.set(\"dynamicBody\", JSON.stringify(body));"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{{dynamicBody}}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{ISS_BASE_URL}}/{{ISS_CONTEXT_PATH}}/issue-ebls",
+											"host": [
+												"{{ISS_BASE_URL}}"
+											],
+											"path": [
+												"{{ISS_CONTEXT_PATH}}",
+												"issue-ebls"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "[Unofficial endpoint] Mark the request as surrendered",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is correct\", () => {\r",
+													"    pm.response.to.have.status(204);\r",
+													"});\r",
+													""
+												],
+												"type": "text/javascript"
+											}
+										},
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const tdRef = pm.collectionVariables.get(\"currentTransportDocumentReference\");\r",
+													"if (!tdRef) {\r",
+													"    throw new Error(\"Requests run out of order\")\r",
+													"}"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"transportDocumentReference\": \"{{currentTransportDocumentReference}}\",\r\n    \"issuanceRequestState\": \"SURR\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{ISS_BASE_URL}}/{{ISS_CONTEXT_PATH}}/unofficial/change-state/{{currentTransportDocumentReference}}",
+											"host": [
+												"{{ISS_BASE_URL}}"
+											],
+											"path": [
+												"{{ISS_CONTEXT_PATH}}",
+												"unofficial",
+												"change-state",
+												"{{currentTransportDocumentReference}}"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Resubmit eBL",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.collectionVariables.unset(\"currentTransportDocumentReference\");\r",
+													"\r",
+													"pm.test(\"Status code is correct\", () => {\r",
+													"    pm.response.to.have.status(204);\r",
+													"});\r",
+													""
+												],
+												"type": "text/javascript"
+											}
+										},
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const tdRef = pm.collectionVariables.get(\"currentTransportDocumentReference\");\r",
+													"if (!tdRef) {\r",
+													"    throw new Error(\"Requests run out of order\")\r",
+													"}\r",
+													"var body = {\r",
+													"    \"document\": utils.fetchTransportDocumentById(1, tdRef),\r",
+													"    \"issueTo\": utils.fetchValidIssueToById(1),\r",
+													"};\r",
+													"\r",
+													"pm.environment.set(\"dynamicBody\", JSON.stringify(body));"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{{dynamicBody}}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{ISS_BASE_URL}}/{{ISS_CONTEXT_PATH}}/issue-ebls",
+											"host": [
+												"{{ISS_BASE_URL}}"
+											],
+											"path": [
+												"{{ISS_CONTEXT_PATH}}",
+												"issue-ebls"
+											]
+										}
+									},
+									"response": []
+								}
+							],
+							"description": "Test to ensure that a transport document reference can be reused if the issuance request is rejected (e.g., via `BREQ`)."
 						}
 					]
-				},
-				{
-					"name": "Test: Submit eBL issuance request after surrender (admendment)",
-					"item": [
-						{
-							"name": "Submit eBL that is processed but will later be rejected",
-							"event": [
-								{
-									"listen": "test",
-									"script": {
-										"exec": [
-											"pm.test(\"Status code is correct\", () => {\r",
-											"    pm.response.to.have.status(204);\r",
-											"});\r",
-											""
-										],
-										"type": "text/javascript"
-									}
-								},
-								{
-									"listen": "prerequest",
-									"script": {
-										"exec": [
-											"const tdRef = utils.generateTransportDocumentReference();\r",
-											"\r",
-											"var body = {\r",
-											"    \"document\": utils.fetchTransportDocumentById(1, tdRef),\r",
-											"    \"issueTo\": utils.fetchValidIssueToById(1),\r",
-											"};\r",
-											"\r",
-											"pm.collectionVariables.set(\"currentTransportDocumentReference\", tdRef);\r",
-											"pm.environment.set(\"dynamicBody\", JSON.stringify(body));"
-										],
-										"type": "text/javascript"
-									}
-								}
-							],
-							"request": {
-								"method": "PUT",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "{{dynamicBody}}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{ISS_BASE_URL}}/{{ISS_CONTEXT_PATH}}/issue-ebls",
-									"host": [
-										"{{ISS_BASE_URL}}"
-									],
-									"path": [
-										"{{ISS_CONTEXT_PATH}}",
-										"issue-ebls"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "[Unofficial endpoint] Mark the request as surrendered",
-							"event": [
-								{
-									"listen": "test",
-									"script": {
-										"exec": [
-											"pm.test(\"Status code is correct\", () => {\r",
-											"    pm.response.to.have.status(204);\r",
-											"});\r",
-											""
-										],
-										"type": "text/javascript"
-									}
-								},
-								{
-									"listen": "prerequest",
-									"script": {
-										"exec": [
-											"const tdRef = pm.collectionVariables.get(\"currentTransportDocumentReference\");\r",
-											"if (!tdRef) {\r",
-											"    throw new Error(\"Requests run out of order\")\r",
-											"}"
-										],
-										"type": "text/javascript"
-									}
-								}
-							],
-							"request": {
-								"method": "PUT",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "{\r\n    \"transportDocumentReference\": \"{{currentTransportDocumentReference}}\",\r\n    \"issuanceRequestState\": \"SURR\"\r\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{ISS_BASE_URL}}/{{ISS_CONTEXT_PATH}}/unofficial/change-state/{{currentTransportDocumentReference}}",
-									"host": [
-										"{{ISS_BASE_URL}}"
-									],
-									"path": [
-										"{{ISS_CONTEXT_PATH}}",
-										"unofficial",
-										"change-state",
-										"{{currentTransportDocumentReference}}"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "Resubmit eBL",
-							"event": [
-								{
-									"listen": "test",
-									"script": {
-										"exec": [
-											"pm.collectionVariables.unset(\"currentTransportDocumentReference\");\r",
-											"\r",
-											"pm.test(\"Status code is correct\", () => {\r",
-											"    pm.response.to.have.status(204);\r",
-											"});\r",
-											""
-										],
-										"type": "text/javascript"
-									}
-								},
-								{
-									"listen": "prerequest",
-									"script": {
-										"exec": [
-											"const tdRef = pm.collectionVariables.get(\"currentTransportDocumentReference\");\r",
-											"if (!tdRef) {\r",
-											"    throw new Error(\"Requests run out of order\")\r",
-											"}\r",
-											"var body = {\r",
-											"    \"document\": utils.fetchTransportDocumentById(1, tdRef),\r",
-											"    \"issueTo\": utils.fetchValidIssueToById(1),\r",
-											"};\r",
-											"\r",
-											"pm.environment.set(\"dynamicBody\", JSON.stringify(body));"
-										],
-										"type": "text/javascript"
-									}
-								}
-							],
-							"request": {
-								"method": "PUT",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "{{dynamicBody}}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{ISS_BASE_URL}}/{{ISS_CONTEXT_PATH}}/issue-ebls",
-									"host": [
-										"{{ISS_BASE_URL}}"
-									],
-									"path": [
-										"{{ISS_CONTEXT_PATH}}",
-										"issue-ebls"
-									]
-								}
-							},
-							"response": []
-						}
-					],
-					"description": "Test to ensure that a transport document reference can be reused if the issuance request is rejected (e.g., via `BREQ`)."
 				},
 				{
 					"name": "Negative tests",
