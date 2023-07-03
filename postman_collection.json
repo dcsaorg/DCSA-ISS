@@ -255,6 +255,186 @@
 					]
 				},
 				{
+					"name": "Test: Submit eBL issuance request after surrender (admendment)",
+					"item": [
+						{
+							"name": "Submit eBL that is processed but will later be rejected",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is correct\", () => {\r",
+											"    pm.response.to.have.status(204);\r",
+											"});\r",
+											""
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"const tdRef = utils.generateTransportDocumentReference();\r",
+											"\r",
+											"var body = {\r",
+											"    \"document\": utils.fetchTransportDocumentById(1, tdRef),\r",
+											"    \"issueTo\": utils.fetchValidIssueToById(1),\r",
+											"};\r",
+											"\r",
+											"pm.collectionVariables.set(\"currentTransportDocumentReference\", tdRef);\r",
+											"pm.environment.set(\"dynamicBody\", JSON.stringify(body));"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{{dynamicBody}}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{ISS_BASE_URL}}/{{ISS_CONTEXT_PATH}}/issue-ebls",
+									"host": [
+										"{{ISS_BASE_URL}}"
+									],
+									"path": [
+										"{{ISS_CONTEXT_PATH}}",
+										"issue-ebls"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "[Unofficial endpoint] Mark the request as surrendered",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is correct\", () => {\r",
+											"    pm.response.to.have.status(204);\r",
+											"});\r",
+											""
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"const tdRef = pm.collectionVariables.get(\"currentTransportDocumentReference\");\r",
+											"if (!tdRef) {\r",
+											"    throw new Error(\"Requests run out of order\")\r",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"transportDocumentReference\": \"{{currentTransportDocumentReference}}\",\r\n    \"issuanceRequestState\": \"SURR\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{ISS_BASE_URL}}/{{ISS_CONTEXT_PATH}}/unofficial/change-state/{{currentTransportDocumentReference}}",
+									"host": [
+										"{{ISS_BASE_URL}}"
+									],
+									"path": [
+										"{{ISS_CONTEXT_PATH}}",
+										"unofficial",
+										"change-state",
+										"{{currentTransportDocumentReference}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Resubmit eBL",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.collectionVariables.unset(\"currentTransportDocumentReference\");\r",
+											"\r",
+											"pm.test(\"Status code is correct\", () => {\r",
+											"    pm.response.to.have.status(204);\r",
+											"});\r",
+											""
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"const tdRef = pm.collectionVariables.get(\"currentTransportDocumentReference\");\r",
+											"if (!tdRef) {\r",
+											"    throw new Error(\"Requests run out of order\")\r",
+											"}\r",
+											"var body = {\r",
+											"    \"document\": utils.fetchTransportDocumentById(1, tdRef),\r",
+											"    \"issueTo\": utils.fetchValidIssueToById(1),\r",
+											"};\r",
+											"\r",
+											"pm.environment.set(\"dynamicBody\", JSON.stringify(body));"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{{dynamicBody}}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{ISS_BASE_URL}}/{{ISS_CONTEXT_PATH}}/issue-ebls",
+									"host": [
+										"{{ISS_BASE_URL}}"
+									],
+									"path": [
+										"{{ISS_CONTEXT_PATH}}",
+										"issue-ebls"
+									]
+								}
+							},
+							"response": []
+						}
+					],
+					"description": "Test to ensure that a transport document reference can be reused if the issuance request is rejected (e.g., via `BREQ`)."
+				},
+				{
 					"name": "Negative tests",
 					"item": [
 						{
@@ -491,7 +671,1085 @@
 		},
 		{
 			"name": "Issuance RSP",
-			"item": []
+			"item": [
+				{
+					"name": "Positive tests",
+					"item": [
+						{
+							"name": "Test: Respond with ISSU",
+							"item": [
+								{
+									"name": "[Unofficial endpoint] Ensure response is pending",
+									"event": [
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const tdRef = utils.generateTransportDocumentReference();\r",
+													"pm.collectionVariables.set(\"currentTransportDocumentReference\", tdRef);"
+												],
+												"type": "text/javascript"
+											}
+										},
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is correct\", () => {\r",
+													"    pm.response.to.have.status(204);\r",
+													"});\r",
+													""
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"transportDocumentReference\": \"{{tdRef}}\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{ISS_RSP_BASE_URL}}/{{ISS_RSP_CONTEXT_PATH}}/unofficial/ensure-is-pending-response",
+											"host": [
+												"{{ISS_RSP_BASE_URL}}"
+											],
+											"path": [
+												"{{ISS_RSP_CONTEXT_PATH}}",
+												"unofficial",
+												"ensure-is-pending-response"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Pending response should accept ISSU",
+									"event": [
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const tdRef = pm.collectionVariables.get(\"currentTransportDocumentReference\");\r",
+													"if (!tdRef) {\r",
+													"    throw new Error(\"Requests run out of order\")\r",
+													"}"
+												],
+												"type": "text/javascript"
+											}
+										},
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.collectionVariables.unset(\"currentTransportDocumentReference\");\r",
+													"\r",
+													"pm.test(\"Status code is correct\", () => {\r",
+													"    pm.response.to.have.status(204);\r",
+													"});\r",
+													""
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"transportDocumentReference\": \"{{tdRef}}\",\r\n    \"issuanceResponseCode\": \"ISSU\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{ISS_RSP_BASE_URL}}/{{ISS_RSP_CONTEXT_PATH}}/issuance-responses",
+											"host": [
+												"{{ISS_RSP_BASE_URL}}"
+											],
+											"path": [
+												"{{ISS_RSP_CONTEXT_PATH}}",
+												"issuance-responses"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Test: Respond with BREQ",
+							"item": [
+								{
+									"name": "[Unofficial endpoint] Ensure response is pending",
+									"event": [
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const tdRef = utils.generateTransportDocumentReference();\r",
+													"pm.collectionVariables.set(\"currentTransportDocumentReference\", tdRef);"
+												],
+												"type": "text/javascript"
+											}
+										},
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is correct\", () => {\r",
+													"    pm.response.to.have.status(204);\r",
+													"});\r",
+													""
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"transportDocumentReference\": \"{{tdRef}}\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{ISS_RSP_BASE_URL}}/{{ISS_RSP_CONTEXT_PATH}}/unofficial/ensure-is-pending-response",
+											"host": [
+												"{{ISS_RSP_BASE_URL}}"
+											],
+											"path": [
+												"{{ISS_RSP_CONTEXT_PATH}}",
+												"unofficial",
+												"ensure-is-pending-response"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Pending response should accept BREQ",
+									"event": [
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const tdRef = pm.collectionVariables.get(\"currentTransportDocumentReference\");\r",
+													"if (!tdRef) {\r",
+													"    throw new Error(\"Requests run out of order\")\r",
+													"}"
+												],
+												"type": "text/javascript"
+											}
+										},
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.collectionVariables.unset(\"currentTransportDocumentReference\");\r",
+													"\r",
+													"pm.test(\"Status code is correct\", () => {\r",
+													"    pm.response.to.have.status(204);\r",
+													"});\r",
+													""
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"transportDocumentReference\": \"{{tdRef}}\",\r\n    \"issuanceResponseCode\": \"BREQ\",\r\n    \"reason\": \"Some descriptive reason of the problem with the issuance request would be put here.\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{ISS_RSP_BASE_URL}}/{{ISS_RSP_CONTEXT_PATH}}/issuance-responses",
+											"host": [
+												"{{ISS_RSP_BASE_URL}}"
+											],
+											"path": [
+												"{{ISS_RSP_CONTEXT_PATH}}",
+												"issuance-responses"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Test: Resending with same content is accepted (ISSU)",
+							"item": [
+								{
+									"name": "[Unofficial endpoint] Ensure response is pending",
+									"event": [
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const tdRef = utils.generateTransportDocumentReference();\r",
+													"pm.collectionVariables.set(\"currentTransportDocumentReference\", tdRef);"
+												],
+												"type": "text/javascript"
+											}
+										},
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is correct\", () => {\r",
+													"    pm.response.to.have.status(204);\r",
+													"});\r",
+													""
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"transportDocumentReference\": \"{{tdRef}}\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{ISS_RSP_BASE_URL}}/{{ISS_RSP_CONTEXT_PATH}}/unofficial/ensure-is-pending-response",
+											"host": [
+												"{{ISS_RSP_BASE_URL}}"
+											],
+											"path": [
+												"{{ISS_RSP_CONTEXT_PATH}}",
+												"unofficial",
+												"ensure-is-pending-response"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "First response is accepted",
+									"event": [
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const tdRef = pm.collectionVariables.get(\"currentTransportDocumentReference\");\r",
+													"if (!tdRef) {\r",
+													"    throw new Error(\"Requests run out of order\")\r",
+													"}"
+												],
+												"type": "text/javascript"
+											}
+										},
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is correct\", () => {\r",
+													"    pm.response.to.have.status(204);\r",
+													"});\r",
+													""
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"transportDocumentReference\": \"{{tdRef}}\",\r\n    \"issuanceResponseCode\": \"ISSU\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{ISS_RSP_BASE_URL}}/{{ISS_RSP_CONTEXT_PATH}}/issuance-responses",
+											"host": [
+												"{{ISS_RSP_BASE_URL}}"
+											],
+											"path": [
+												"{{ISS_RSP_CONTEXT_PATH}}",
+												"issuance-responses"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Second response is accepted",
+									"event": [
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const tdRef = pm.collectionVariables.get(\"currentTransportDocumentReference\");\r",
+													"if (!tdRef) {\r",
+													"    throw new Error(\"Requests run out of order\")\r",
+													"}"
+												],
+												"type": "text/javascript"
+											}
+										},
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.collectionVariables.unset(\"currentTransportDocumentReference\");\r",
+													"\r",
+													"pm.test(\"Status code is correct\", () => {\r",
+													"    pm.response.to.have.status(204);\r",
+													"});\r",
+													""
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"transportDocumentReference\": \"{{tdRef}}\",\r\n    \"issuanceResponseCode\": \"ISSU\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{ISS_RSP_BASE_URL}}/{{ISS_RSP_CONTEXT_PATH}}/issuance-responses",
+											"host": [
+												"{{ISS_RSP_BASE_URL}}"
+											],
+											"path": [
+												"{{ISS_RSP_CONTEXT_PATH}}",
+												"issuance-responses"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Test: Resending with same content is accepted (REFU)",
+							"item": [
+								{
+									"name": "[Unofficial endpoint] Ensure response is pending",
+									"event": [
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const tdRef = utils.generateTransportDocumentReference();\r",
+													"pm.collectionVariables.set(\"currentTransportDocumentReference\", tdRef);"
+												],
+												"type": "text/javascript"
+											}
+										},
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is correct\", () => {\r",
+													"    pm.response.to.have.status(204);\r",
+													"});\r",
+													""
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"transportDocumentReference\": \"{{tdRef}}\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{ISS_RSP_BASE_URL}}/{{ISS_RSP_CONTEXT_PATH}}/unofficial/ensure-is-pending-response",
+											"host": [
+												"{{ISS_RSP_BASE_URL}}"
+											],
+											"path": [
+												"{{ISS_RSP_CONTEXT_PATH}}",
+												"unofficial",
+												"ensure-is-pending-response"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "First response is accepted",
+									"event": [
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const tdRef = pm.collectionVariables.get(\"currentTransportDocumentReference\");\r",
+													"if (!tdRef) {\r",
+													"    throw new Error(\"Requests run out of order\")\r",
+													"}"
+												],
+												"type": "text/javascript"
+											}
+										},
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is correct\", () => {\r",
+													"    pm.response.to.have.status(204);\r",
+													"});\r",
+													""
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"transportDocumentReference\": \"{{tdRef}}\",\r\n    \"issuanceResponseCode\": \"REFU\",\r\n    \"reason\": \"Computer says no. And there should provide a real reason here\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{ISS_RSP_BASE_URL}}/{{ISS_RSP_CONTEXT_PATH}}/issuance-responses",
+											"host": [
+												"{{ISS_RSP_BASE_URL}}"
+											],
+											"path": [
+												"{{ISS_RSP_CONTEXT_PATH}}",
+												"issuance-responses"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Second response is accepted",
+									"event": [
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const tdRef = pm.collectionVariables.get(\"currentTransportDocumentReference\");\r",
+													"if (!tdRef) {\r",
+													"    throw new Error(\"Requests run out of order\")\r",
+													"}"
+												],
+												"type": "text/javascript"
+											}
+										},
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.collectionVariables.unset(\"currentTransportDocumentReference\");\r",
+													"\r",
+													"pm.test(\"Status code is correct\", () => {\r",
+													"    pm.response.to.have.status(204);\r",
+													"});\r",
+													""
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"transportDocumentReference\": \"{{tdRef}}\",\r\n    \"issuanceResponseCode\": \"REFU\",\r\n    \"reason\": \"Computer says no. And there should provide a real reason here\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{ISS_RSP_BASE_URL}}/{{ISS_RSP_CONTEXT_PATH}}/issuance-responses",
+											"host": [
+												"{{ISS_RSP_BASE_URL}}"
+											],
+											"path": [
+												"{{ISS_RSP_CONTEXT_PATH}}",
+												"issuance-responses"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "Negative tests",
+					"item": [
+						{
+							"name": "Test: Respond with BREQ without a reason",
+							"item": [
+								{
+									"name": "[Unofficial endpoint] Ensure response is pending",
+									"event": [
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const tdRef = utils.generateTransportDocumentReference();\r",
+													"pm.collectionVariables.set(\"currentTransportDocumentReference\", tdRef);"
+												],
+												"type": "text/javascript"
+											}
+										},
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is correct\", () => {\r",
+													"    pm.response.to.have.status(204);\r",
+													"});\r",
+													""
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"transportDocumentReference\": \"{{tdRef}}\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{ISS_RSP_BASE_URL}}/{{ISS_RSP_CONTEXT_PATH}}/unofficial/ensure-is-pending-response",
+											"host": [
+												"{{ISS_RSP_BASE_URL}}"
+											],
+											"path": [
+												"{{ISS_RSP_CONTEXT_PATH}}",
+												"unofficial",
+												"ensure-is-pending-response"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Pending response should reject BREQ without a reason",
+									"event": [
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const tdRef = pm.collectionVariables.get(\"currentTransportDocumentReference\");\r",
+													"if (!tdRef) {\r",
+													"    throw new Error(\"Requests run out of order\")\r",
+													"}"
+												],
+												"type": "text/javascript"
+											}
+										},
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.collectionVariables.unset(\"currentTransportDocumentReference\");\r",
+													"\r",
+													"pm.test(\"Status code is correct\", () => {\r",
+													"    pm.response.to.have.status(400);\r",
+													"});\r",
+													""
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"transportDocumentReference\": \"{{tdRef}}\",\r\n    \"issuanceResponseCode\": \"BREQ\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{ISS_RSP_BASE_URL}}/{{ISS_RSP_CONTEXT_PATH}}/issuance-responses",
+											"host": [
+												"{{ISS_RSP_BASE_URL}}"
+											],
+											"path": [
+												"{{ISS_RSP_CONTEXT_PATH}}",
+												"issuance-responses"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Test: Change of reason should result in error",
+							"item": [
+								{
+									"name": "[Unofficial endpoint] Ensure response is pending",
+									"event": [
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const tdRef = utils.generateTransportDocumentReference();\r",
+													"pm.collectionVariables.set(\"currentTransportDocumentReference\", tdRef);"
+												],
+												"type": "text/javascript"
+											}
+										},
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is correct\", () => {\r",
+													"    pm.response.to.have.status(204);\r",
+													"});\r",
+													""
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"transportDocumentReference\": \"{{tdRef}}\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{ISS_RSP_BASE_URL}}/{{ISS_RSP_CONTEXT_PATH}}/unofficial/ensure-is-pending-response",
+											"host": [
+												"{{ISS_RSP_BASE_URL}}"
+											],
+											"path": [
+												"{{ISS_RSP_CONTEXT_PATH}}",
+												"unofficial",
+												"ensure-is-pending-response"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "First request is accepted",
+									"event": [
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const tdRef = pm.collectionVariables.get(\"currentTransportDocumentReference\");\r",
+													"if (!tdRef) {\r",
+													"    throw new Error(\"Requests run out of order\")\r",
+													"}"
+												],
+												"type": "text/javascript"
+											}
+										},
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is correct\", () => {\r",
+													"    pm.response.to.have.status(204);\r",
+													"});\r",
+													""
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"transportDocumentReference\": \"{{tdRef}}\",\r\n    \"issuanceResponseCode\": \"BREQ\",\r\n    \"reason\": \"Rejected due to X\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{ISS_RSP_BASE_URL}}/{{ISS_RSP_CONTEXT_PATH}}/issuance-responses",
+											"host": [
+												"{{ISS_RSP_BASE_URL}}"
+											],
+											"path": [
+												"{{ISS_RSP_CONTEXT_PATH}}",
+												"issuance-responses"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Second is rejected because the reason differs",
+									"event": [
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const tdRef = pm.collectionVariables.get(\"currentTransportDocumentReference\");\r",
+													"if (!tdRef) {\r",
+													"    throw new Error(\"Requests run out of order\")\r",
+													"}"
+												],
+												"type": "text/javascript"
+											}
+										},
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.collectionVariables.unset(\"currentTransportDocumentReference\");\r",
+													"\r",
+													"pm.test(\"Status code is correct\", () => {\r",
+													"    pm.response.to.have.status(409);\r",
+													"});\r",
+													""
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"transportDocumentReference\": \"{{tdRef}}\",\r\n    \"issuanceResponseCode\": \"BREQ\",\r\n    \"reason\": \"Rejected due to X and Y\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{ISS_RSP_BASE_URL}}/{{ISS_RSP_CONTEXT_PATH}}/issuance-responses",
+											"host": [
+												"{{ISS_RSP_BASE_URL}}"
+											],
+											"path": [
+												"{{ISS_RSP_CONTEXT_PATH}}",
+												"issuance-responses"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Test: Change of responseCode should result in error",
+							"item": [
+								{
+									"name": "[Unofficial endpoint] Ensure response is pending",
+									"event": [
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const tdRef = utils.generateTransportDocumentReference();\r",
+													"pm.collectionVariables.set(\"currentTransportDocumentReference\", tdRef);"
+												],
+												"type": "text/javascript"
+											}
+										},
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is correct\", () => {\r",
+													"    pm.response.to.have.status(204);\r",
+													"});\r",
+													""
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"transportDocumentReference\": \"{{tdRef}}\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{ISS_RSP_BASE_URL}}/{{ISS_RSP_CONTEXT_PATH}}/unofficial/ensure-is-pending-response",
+											"host": [
+												"{{ISS_RSP_BASE_URL}}"
+											],
+											"path": [
+												"{{ISS_RSP_CONTEXT_PATH}}",
+												"unofficial",
+												"ensure-is-pending-response"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "First request is accepted",
+									"event": [
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const tdRef = pm.collectionVariables.get(\"currentTransportDocumentReference\");\r",
+													"if (!tdRef) {\r",
+													"    throw new Error(\"Requests run out of order\")\r",
+													"}"
+												],
+												"type": "text/javascript"
+											}
+										},
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is correct\", () => {\r",
+													"    pm.response.to.have.status(204);\r",
+													"});\r",
+													""
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"transportDocumentReference\": \"{{tdRef}}\",\r\n    \"issuanceResponseCode\": \"REFU\",\r\n    \"reason\": \"Rejected due to X\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{ISS_RSP_BASE_URL}}/{{ISS_RSP_CONTEXT_PATH}}/issuance-responses",
+											"host": [
+												"{{ISS_RSP_BASE_URL}}"
+											],
+											"path": [
+												"{{ISS_RSP_CONTEXT_PATH}}",
+												"issuance-responses"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Second is rejected because the reason differs",
+									"event": [
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const tdRef = pm.collectionVariables.get(\"currentTransportDocumentReference\");\r",
+													"if (!tdRef) {\r",
+													"    throw new Error(\"Requests run out of order\")\r",
+													"}"
+												],
+												"type": "text/javascript"
+											}
+										},
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.collectionVariables.unset(\"currentTransportDocumentReference\");\r",
+													"\r",
+													"pm.test(\"Status code is correct\", () => {\r",
+													"    pm.response.to.have.status(409);\r",
+													"});\r",
+													""
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"transportDocumentReference\": \"{{tdRef}}\",\r\n    \"issuanceResponseCode\": \"BREQ\",\r\n    \"reason\": \"Rejected due to X\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{ISS_RSP_BASE_URL}}/{{ISS_RSP_CONTEXT_PATH}}/issuance-responses",
+											"host": [
+												"{{ISS_RSP_BASE_URL}}"
+											],
+											"path": [
+												"{{ISS_RSP_CONTEXT_PATH}}",
+												"issuance-responses"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Unknown TD references should be rejected",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.collectionVariables.unset(\"currentTransportDocumentReference\");\r",
+											"\r",
+											"pm.test(\"Status code is correct\", () => {\r",
+											"    pm.response.to.have.status(400);\r",
+											"});\r",
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"transportDocumentReference\": \"TDR-UNKNOWN\",\r\n    \"issuanceResponseCode\": \"ISSU\",\r\n    \"reason\": null\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{ISS_RSP_BASE_URL}}/{{ISS_RSP_CONTEXT_PATH}}/issuance-responses",
+									"host": [
+										"{{ISS_RSP_BASE_URL}}"
+									],
+									"path": [
+										"{{ISS_RSP_CONTEXT_PATH}}",
+										"issuance-responses"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			],
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test(\"API-Version is present\", () => {",
+							"    pm.response.to.have.header(\"API-Version\");",
+							"});",
+							"",
+							"pm.test(\"API-Version header is set correctly\", () => {",
+							"    if (!pm.request.url.path.includes(\"unofficial\")) {",
+							"        pm.expect(pm.response.headers.get(\"API-Version\")).to.eql(pm.collectionVariables.get(\"ISS_RSP_SPEC_VERSION\"));",
+							"    }",
+							"});"
+						]
+					}
+				}
+			]
 		}
 	],
 	"event": [
@@ -581,7 +1839,7 @@
 			"type": "default"
 		},
 		{
-			"key": "ISS_RSP_BASE__URL",
+			"key": "ISS_RSP_BASE_URL",
 			"value": "http://localhost:9090",
 			"type": "default"
 		},
@@ -591,7 +1849,7 @@
 			"type": "default"
 		},
 		{
-			"key": "ISS_RSP_CONTEXT_PATH\n",
+			"key": "ISS_RSP_CONTEXT_PATH",
 			"value": "iss-rsp/v1",
 			"type": "default"
 		},

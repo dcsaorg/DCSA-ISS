@@ -32,12 +32,13 @@ CREATE TABLE issuance_request (
 CREATE UNIQUE INDEX ON issuance_request (transport_document_reference)
   WHERE issuance_request_state IN ('PEND');
 
-CREATE TABLE pending_issuance_request (
+CREATE TABLE issuance_request_response (
   id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
   transport_document_reference varchar(20) NOT NULL,
-  issuance_response_code varchar(4) NOT NULL DEFAULT 'PEND' CHECK (issuance_response_code IN ('PEND', 'ISSU', 'BREQ', 'REFU')),
-  reason varchar(255) NULL
+  issuance_response_code varchar(4) NULL CHECK (issuance_response_code IS NULL OR issuance_response_code IN ('ISSU', 'BREQ', 'REFU')),
+  reason varchar(255) NULL,
+  created_date_time timestamp with time zone NOT NULL default now()
 );
 
-CREATE UNIQUE INDEX ON pending_issuance_request (transport_document_reference)
-  WHERE issuance_response_code IN ('PEND');
+CREATE UNIQUE INDEX ON issuance_request_response (transport_document_reference)
+  WHERE issuance_response_code IS NULL;
