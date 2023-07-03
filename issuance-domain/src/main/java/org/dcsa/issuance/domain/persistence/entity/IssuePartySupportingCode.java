@@ -19,8 +19,9 @@ public class IssuePartySupportingCode {
   @Column(name = "id", nullable = false)
   private UUID id;
 
-  @Column(name = "issue_party_id", nullable = false)
-  private UUID partyID;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "issue_party_id")
+  private IssueParty party;
 
   @Column(name = "party_code", length = 100, nullable = false)
   private String partyCode;

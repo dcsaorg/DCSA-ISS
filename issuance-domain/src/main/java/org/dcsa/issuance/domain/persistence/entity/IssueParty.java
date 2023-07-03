@@ -2,8 +2,10 @@ package org.dcsa.issuance.domain.persistence.entity;
 
 import jakarta.persistence.*;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import lombok.*;
+import org.hibernate.annotations.Cascade;
 
 @Data
 @Builder(toBuilder = true)
@@ -34,10 +36,8 @@ public class IssueParty {
   @Column(name = "tax_reference", length = 100)
   private String taxReference;
 
-  @OneToMany
-  @JoinColumn(
-    name = "issue_party_id",
-    referencedColumnName = "id"
-  )
-  private List<IssuePartySupportingCode> supportingPartyCodes;
+  @ToString.Exclude
+  @EqualsAndHashCode.Exclude
+  @OneToMany(mappedBy = "party")
+  private Set<IssuePartySupportingCode> supportingPartyCodes;
 }
