@@ -1,6 +1,7 @@
 package org.dcsa.issuance.controller.unofficial;
 
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.dcsa.issuance.service.IssueRequestResponseService;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 record PendingIssuanceRequestResponseTO(
   @NotNull
   @Size(max = 20)
+  @Pattern(regexp = "^\\S+(\\s+\\S+)*$")
   String transportDocumentReference
 ) {
 }
