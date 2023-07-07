@@ -2,6 +2,7 @@ package org.dcsa.issuance.controller.unofficial;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.dcsa.issuance.domain.persistence.entity.enums.IssuanceRequestState;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 record ChangeStateTO(
   @NotNull
   @Size(max = 20)
+  @Pattern(regexp = "^\\S+(\\s+\\S+)*$")
   String transportDocumentReference,
 
   @NotNull

@@ -32,7 +32,6 @@ public class IssueParty {
   @Column(name = "location_of_registration", length = 2)
   private String locationOfRegistration;
 
-
   @Column(name = "tax_reference", length = 100)
   private String taxReference;
 
